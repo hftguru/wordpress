@@ -1,0 +1,73 @@
+// Fatura Adresi kısmına vergi dairesi ve vergi numarası özel alanlarını ekler.
+function wolinka_billing_custom_checkout_fields( $fields ) {
+    $fields['billing']['billing_vergi_dairesi'] = array(
+	    'label'     => __('Vergi Dairesi', 'woocommerce'),
+	    'priority'	=> 35,
+	    'required'  => false,
+	    'class'     => array('form-row form-row-first'),
+	    'clear'     => true
+    );
+    $fields['billing']['billing_vergi_no'] = array(
+	    'label'     => __('Vergi No veya TC No', 'woocommerce'),
+	    'priority'	=> 35,
+	    'required'  => true,
+	    'class'     => array('form-row form-row-last'),
+	    'clear'     => true
+    );
+	return $fields;
+}
+add_filter( 'woocommerce_checkout_fields' , 'wolinka_billing_custom_checkout_fields' );
+//Sipariş düzenleme sayfasına vergi dairesi ve vergi numarası alanlarını ekler.
+function wolinka_admin_order_data_after_billing_address($order){
+    ?>
+    <h4><?php _e( 'Vergi Bilgileri', 'woocommerce' ); ?>
+        <a href="#" class="edit_address"><?php _e( 'Edit', 'woocommerce' ); ?></a>
+    </h4>
+    <div class="vergi-bilgileri">
+        <p><strong>Vergi Dairesi :</strong> <?php echo get_post_meta( $order->get_id(), '_billing_vergi_dairesi', true )  ?></p>
+        <p><strong>Vergi No :</strong> <?php echo get_post_meta( $order->get_id(), '_billing_vergi_no', true )  ?></p>
+    </div>
+
+    <div class="edit_address">
+        <?php woocommerce_wp_text_input( array( 'id' => '_billing_vergi_dairesi', 'label' => __( 'Vergi Dairesi' ), 'wrapper_class' => '_billing_company_field' ) ); ?>
+        <?php woocommerce_wp_text_input( array( 'id' => '_billing_vergi_no', 'label' => __( 'Vergi No' ), 'wrapper_class' => '_billing_company_field' ) ); ?>
+    </div>
+    <?php
+}
+add_action( 'woocommerce_admin_order_data_after_billing_address', 'wolinka_admin_order_data_after_billing_address', 10, 1 );
+//Sipariş düzenleme sayfasına vergi dairesi ve vergi numarası alanlarının düzenlenmesine izin verir.
+function wolinka_edit_billing_custom_checkout_fields( $order_id, $post ){
+    $order = wc_get_order( $order_id );
+    $order->update_meta_data( '_billing_vergi_dairesi', wc_clean( $_POST[ '_billing_vergi_dairesi' ] ) );
+    $order->update_meta_data( '_billing_vergi_no', wc_clean( $_POST[ '_billing_vergi_no' ] ) );
+    $order->save_meta_data();
+}
+add_action( 'woocommerce_process_shop_order_meta', 'wolinka_edit_billing_custom_checkout_fields', 45, 2 );
+//Sipariş mailinde Vergi Dairesi ve Vergi Numarası alanlarını tablo olarak ekler. 
+function wolinka_email_after_order_table( $order ) {
+    $billing_vergi_dairesi = get_post_meta( $order->id, '_billing_vergi_dairesi', true );
+    $billing_vergi_no = get_post_meta( $order->id, '_billing_vergi_no', true );
+    if ( !empty( $billing_vergi_dairesi) && !empty($billing_vergi_no) ) {
+        ?>
+            <h2>Firma Detayları</h2>
+            <table class="td" cellspacing="0" cellpadding="6" style="width: 100%; margin-bottom:40px; font-family:'Helvetica Neue', Helvetica, Roboto, Arial, sans-serif;" border="1">
+                <tr>
+                    <th class="td" style="text-align:left;color:#636363;border:1px solid #e5e5e5;padding:12px">
+                        <strong>Vergi Dairesi:</strong>
+                    </th>
+                    <td class="td" style="text-align:left;color:#636363;border:1px solid #e5e5e5;padding:12px">
+                        <?php echo get_post_meta( $order->id, '_billing_vergi_dairesi', true )  ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td" style="text-align:left;color:#636363;border:1px solid #e5e5e5;padding:12px">
+                        </strong>Vergi Veya TC No:</strong>
+                    </th>
+                    <td class="td" style="text-align:left;color:#636363;border:1px solid #e5e5e5;padding:12px">
+                        <?php echo get_post_meta( $order->id, '_billing_vergi_no', true )  ?>
+                    </td>
+                </tr>
+            </table>
+        <?php
+    }
+}
